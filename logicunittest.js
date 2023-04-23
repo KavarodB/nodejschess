@@ -160,5 +160,6 @@ function staleMateCheck() {
 //checkKingAndMore();
 //getKingValidMoves
 
-playSomeGames();
-//staleMateCheck();
+//playSomeGames();
+
+staleMateCheck();
