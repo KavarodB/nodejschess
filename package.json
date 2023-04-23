@@ -1,0 +1,21 @@
+{
+  "name": "nodejschess",
+  "version": "1.0.0",
+  "description": "Chess engine on Javascript and more coming.",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node logicunittest.js",
+    "dev": "nodemon logicunittest"
+  },
+  "keywords": [],
+  "author": "Kaloyan Blagoev (Kavarod)",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.18.2",
+    "nodemon": "^2.0.22",
+    "pug": "^3.0.2",
+    "socket.io": "^4.6.1",
+    "socket.io-client": "^4.6.1"
+  }
+}
