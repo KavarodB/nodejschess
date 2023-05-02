@@ -1,0 +1,47 @@
+        #gameScreen {
+            display: none;
+        }
+        #waitingScreen{
+            display: none;
+        }
+        .gameOverlay {
+            position: relative;
+            width: 600px;
+            height: 600px;
+            margin-bottom: 35px;
+            border: 1px solid;
+            background-image: url("https://www.chess.com/boards/green/150.png");
+            background-position: center center;
+            background-repeat: no-repeat;
+            background-size: 600px 600px;
+        }
+
+        #canvas {
+            position: relative;
+            margin: 0 auto;
+        }
+
+        .coordinates {
+            position: absolute;
+            left: 0;
+            top: 0;
+            z-index: 2;
+            transform: translate(-5%, 4%);
+        }
+
+        .board {
+            position: absolute;
+            left: 1px;
+            top: 1px;
+            z-index: 3;
+            width: 600px;
+            height: 600px;
+        }
+
+        #white_coords {
+            display: none;
+        }
+
+        #black_coords {
+            display: none;
+        }
