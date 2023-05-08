@@ -1,4 +1,3 @@
-import Coordinate from "./Coordinate.js";
 import Chess from "./Chess.js";
 
 const chess = new Chess();
@@ -10,69 +9,6 @@ function playPawnGame() {
 	);
 }
 
-function playPawnEnPassant() {
-	//EN PASSANT.
-	chess.playGame(`1. d4 h6 2. d5 e5 3. dxe6 h5 4. exf7+ Ke7 5. fxg8 end1 `);
-	//INVALID GAME with Pawn.
-	chess.playGame(`1. e4 h5 2. e5 f5 3. d4 h4 4. exf6 end1 `);
-	//INVALID GAME with Queue.
-	chess.playGame(`1. e4 h5 2. e5 f5 3. Qf3 h4 4. exf6 end1 `);
-}
-
-function playCheckMate() {
-	chess.playMove("Pe3");
-	chess.board.showBoard();
-	chess.playMove("pg5");
-	chess.board.showBoard();
-	chess.playMove("Pf4");
-	chess.board.showBoard();
-	chess.playMove("pf6");
-	chess.board.showBoard();
-	chess.playMove("Qh5");
-	chess.board.showBoard();
-	//SHOULD BE MATE.
-	chess.playMove("kf7");
-	chess.board.showBoard();
-}
-
-function playCheckAndPin() {
-	chess.playMove("Pd4");
-	chess.playMove("pd5");
-	chess.playMove("Pc3");
-	chess.playMove("pe5");
-	//Check.
-	chess.playMove("Qa4");
-	chess.board.showBoard();
-	//Invalid.
-	chess.playMove("pf5");
-	chess.board.showBoard();
-	//Block.
-	chess.playMove("bd7");
-	chess.board.showBoard();
-
-	//Stupid move but valid.
-	chess.playMove("Pe3");
-	chess.board.showBoard();
-	//Moving pinned piece falsy.
-	chess.playMove("bf5");
-	chess.board.showBoard();
-	//Moving pinned piece right.
-	chess.playMove("ba4");
-	chess.board.showBoard();
-	//Moving piece from same side twice.
-	chess.playMove("pa5");
-	chess.board.showBoard();
-}
-
-function getKingValidMoves() {
-	chess.playMove("Pe4");
-	chess.playMove("pf5");
-	chess.playMove("Pf4");
-	chess.playMove("pg5");
-	chess.playMove("Qh5");
-	chess.board.showBoard();
-	console.log(chess.isCheckmate(chess.board.black_king));
-}
 function playStaleMate() {
 	chess.playGame(
 		`1. e3 e6 2. Ke2 Ke7 3. Ke1 Ke8 4. Ke2 Ke7 5. Ke1 Ke8 6. Ke2 Ke7 `
@@ -120,7 +56,34 @@ function playTwoMoves() {
 	);
 	chess.playGame(`1. e4 Nf6 2. Ba6 Nxe4 3. Nf3 Ng3 4. O-O Nf5 `);
 }
+
+function wtf() {
+	("1. e4 e5 2. Qg4 d5 3. Qh5 dxe4 4. Qxe5+ Ne7 5. Bb5+ Nc6 6. Bxc6+");
+	chess.playGame(`1. e4 e5 2. Qg4 d5 3. Qh5 dxe4 4. Qxe5+ Ne7 5. Bb5+ Nc6 `);
+	chess.playMove("Bxc6+");
+	//Removing one check opens another.
+	//console.log(chess.playMove("Nc6"));
+	//Valid move.
+	chess.playMove("Bd7");
+	//Countinue the game.
+	chess.playMove("Bb7");
+	chess.playMove("Bb5");
+	//Check
+	chess.playMove("Qxb5+");
+	chess.playMove("Nc6");
+	//Check.
+	chess.playMove("Bxc6+");
+	//defend?
+	chess.playMove("Ke7");
+	chess.playMove("Bxa8");
+	chess.playMove("Qxa8");
+	//Check.
+	chess.playMove("Qe5+");
+	chess.playMove("Kd7");
+}
+
+//playStaleMate();
 //playSomeGames();
-//playPawnGame();
-//playPawnEnPassant();
-playTwoMoves();
+playPawnGame();
+//playTwoMoves();
+//wtf();

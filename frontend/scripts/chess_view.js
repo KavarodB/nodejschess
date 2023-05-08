@@ -6,6 +6,7 @@ socket.on("gameState", handleGameState);
 socket.on("gameOver", handleGameOver);
 socket.on("gameEnded", handleGameEnd);
 socket.on("error", handleError);
+
 const gameScreen = document.getElementById("gameScreen");
 const inputGame = document.getElementById("gameInputField");
 
@@ -14,6 +15,8 @@ const infoGame = document.getElementById("info_game");
 
 const white_coords = document.getElementById("white_coords");
 const black_coords = document.getElementById("black_coords");
+
+const alert_error = document.getElementById("alert_error");
 
 let canvas, ctx;
 let playerNumber = 0;
@@ -45,6 +48,8 @@ function keydown(e) {
 	if (e.keyCode == 13) {
 		socket.emit("moveSingle", e.srcElement.value);
 		inputGame.value = "";
+		alert_error.style.display = "none";
+		alert_error.innerText = "";
 	}
 }
 
@@ -112,7 +117,6 @@ function handleGameState(gameState) {
 	if (!gameActive) {
 		return;
 	}
-	gameState = JSON.parse(gameState);
 	gameTurn.innerText = gameTurn.innerText == "White" ? "Black" : "White";
 	requestAnimationFrame(() => paintGame(gameState));
 }
@@ -121,7 +125,6 @@ function handleGameOver(data) {
 	if (!gameActive) {
 		return;
 	}
-	data = JSON.parse(data);
 	requestAnimationFrame(() => paintGame(data.state));
 
 	//End Game.
@@ -131,11 +134,11 @@ function handleGameOver(data) {
 	infoGame.innerText = "Game Ended.";
 }
 function handleGameEnd(data) {
-	data = JSON.parse(data);
 	infoGame.innerText = "You win, " + data.reason;
 	gameActive = false;
 	inputGame.remove();
 }
-function handleError() {
-	alert("Wrong move, play again.");
+function handleError(error) {
+	alert_error.style.display = "block";
+	alert_error.innerText = error;
 }

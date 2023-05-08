@@ -2,6 +2,8 @@ const socket = io("http://localhost:3000");
 
 socket.on("init", handleInit);
 socket.on("start", init);
+socket.on("settings", handleSettings);
+socket.on("history", handleHistory);
 socket.on("gameState", handleGameState);
 socket.on("gameOver", handleGameOver);
 socket.on("gameCode", handleGameCode);
@@ -28,17 +30,35 @@ const infoGame = document.getElementById("info_game");
 const white_coords = document.getElementById("white_coords");
 const black_coords = document.getElementById("black_coords");
 
+const history_comp = document.getElementById("history");
+
+const checkbox1 = document.getElementById("inCheck1");
+const checkbox2 = document.getElementById("inCheck2");
+const checkbox3 = document.getElementById("inCheck3");
+
+const alert_error = document.getElementById("alert_error");
+
 newGameBtn.addEventListener("click", newGame);
 joinGameBtn.addEventListener("click", joinGame);
 startGameBtn.addEventListener("click", startGame);
 inputGame.addEventListener("keydown", keydown);
 
+checkbox1.addEventListener("change", changeSettings);
+checkbox2.addEventListener("change", changeSettings);
+checkbox3.addEventListener("change", changeSettings);
+
+let settings = {
+	hasCoords: true,
+	hasPieces: true,
+	historyReduce: false,
+};
+
 function startGame() {
-	socket.emit("newMatch");
+	socket.emit("newMatch", settings);
 	waiting();
 }
 function newGame() {
-	socket.emit("newGame");
+	socket.emit("newGame", settings);
 	waiting();
 }
 
@@ -49,7 +69,6 @@ function joinGame() {
 
 let canvas, ctx;
 let playerNumber;
-
 //Game active status.
 let gameActive = false;
 
@@ -74,13 +93,28 @@ function init(base_state) {
 	gameActive = true;
 }
 
+function changeSettings(e) {
+	if (e.target.value == "hasCoords") {
+		settings.hasCoords = !e.currentTarget.checked;
+	}
+	if (e.target.value == "hasPieces") {
+		settings.hasPieces = !e.currentTarget.checked;
+	}
+	if (e.target.value == "historyReduce") {
+		settings.historyReduce = e.currentTarget.checked;
+	}
+}
+
 function keydown(e) {
 	if (!gameActive) {
 		return;
 	}
 	if (e.keyCode == 13) {
+		if (e.srcElement.value.length == 0) return;
 		socket.emit("move", e.srcElement.value);
 		inputGame.value = "";
+		alert_error.style.display = "none";
+		alert_error.innerText = "";
 	}
 }
 
@@ -88,11 +122,13 @@ function paintGame(state) {
 	const number_of_sqr = 8;
 	const matrix = state.board.matrix;
 	ctx.clearRect(0, 0, canvas.width, canvas.height);
-	for (let i = 0; i < number_of_sqr; i++) {
-		for (let j = 0; j < number_of_sqr; j++) {
-			if (matrix[i][j].notation != undefined) {
-				const figure = matrix[i][j];
-				drawFigure(figure);
+	if (settings.hasPieces) {
+		for (let i = 0; i < number_of_sqr; i++) {
+			for (let j = 0; j < number_of_sqr; j++) {
+				if (matrix[i][j].notation != undefined) {
+					const figure = matrix[i][j];
+					drawFigure(figure);
+				}
 			}
 		}
 	}
@@ -143,9 +179,20 @@ function drawFigure(figure) {
 	};
 }
 
+function handleHistory(history) {
+	history_comp.innerText = history;
+}
+
+function handleSettings(settings_server) {
+	settings = settings_server;
+}
+
 function handleInit(number) {
 	playerNumber = number;
 	gameCodeDisplay.innerText = "";
+
+	if (settings.hasCoords == false) return;
+
 	if (number == 1) {
 		white_coords.style.display = "block";
 		black_coords.style.display = "none";
@@ -159,7 +206,6 @@ function handleGameState(gameState) {
 	if (!gameActive) {
 		return;
 	}
-	gameState = JSON.parse(gameState);
 	gameTurn.innerText = gameTurn.innerText == "White" ? "Black" : "White";
 	requestAnimationFrame(() => paintGame(gameState));
 }
@@ -168,7 +214,6 @@ function handleGameOver(data) {
 	if (!gameActive) {
 		return;
 	}
-	data = JSON.parse(data);
 	requestAnimationFrame(() => paintGame(data.state));
 
 	//End Game.
@@ -187,14 +232,14 @@ function handleGameOver(data) {
 }
 
 function handleGameEnd(data) {
-	data = JSON.parse(data);
 	infoGame.innerText = "You win, " + data.reason;
 	gameActive = false;
 	inputGame.remove();
 }
 
-function handleError() {
-	alert("Wrong move, play again.");
+function handleError(error) {
+	alert_error.style.display = "block";
+	alert_error.innerText = error;
 }
 
 function handleGameCode(gameCode) {

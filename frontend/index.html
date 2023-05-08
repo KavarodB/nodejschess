@@ -29,6 +29,21 @@
                             Join Game
                         </button>
                     </div>
+                    <div style="margin-top: 2.5%;">
+                        <p class="h2">Settings</p>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="checkbox" id="inCheck1" value="hasCoords">
+                            <label class="form-check-label" for="inlineCheckbox1">without Coordinates</label>
+                        </div>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="checkbox" id="inCheck2" value="hasPieces">
+                            <label class="form-check-label" for="inlineCheckbox2">without Pieces</label>
+                        </div>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="checkbox" id="inCheck3" value="historyReduce">
+                            <label class="form-check-label" for="inlineCheckbox3">history Reduced</label>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -39,8 +54,12 @@
 
             <div id="gameScreen" class="h-100">
                     <div class="d-flex flex-column align-items-center justify-content-center h-100">
-                        <h1 style="margin-top: 2.5%;font-size: 30px;">Multiplayer Player Chess</h1>
-                        <p style="margin-bottom: 1.5%;font-size: 24px;" id="info_game"><span id="gameTurn" style="font-weight: 500;"></span> to play.
+                        <h1 style="margin-top: 2.5%;font-size: 30px; width: 600px; text-align: center;">Multiplayer Player Chess</h1>
+                        <p style="margin-bottom: 0.5%;font-size: 24px; width: 600px;text-align: center;" id="info_game"><span id="gameTurn" style="font-weight: 500;"></span> to play.
+                        </p>
+                        <p class="history">
+                            History:
+                            <span id="history"></span>
                         </p>
                         <div>
                             <div class="gameOverlay">
@@ -77,9 +96,11 @@
                                 <input type="text" class="form-control" placeholder="Move in stardard notation ( ex. Nf3 )"
                                     id="gameInputField" aria-label="Default" aria-describedby="inputGroup-sizing-default">
                             </div>
+                                <div class="alert alert-danger" role="alert" id="alert_error">
+                                </div>
                         </div>
                     </div>
-        </div>
+                    </div>
     </section>
 
 <script src="https://cdn.socket.io/4.6.0/socket.io.min.js"

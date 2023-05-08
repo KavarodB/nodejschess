@@ -45,3 +45,16 @@
         #black_coords {
             display: none;
         }
+        #alert_error{
+            display: none;
+        }
+        .history{
+            width: 600px;
+            text-align: center;
+            font-size: 18px;
+            font-weight: 400;
+            padding-bottom: 20px;
+            padding-top: 15px;
+            margin-bottom: 0px;
+            overflow: hidden;
+        }

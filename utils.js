@@ -1,4 +1,3 @@
-
 function makeid(length) {
 	var result = "";
 	var characters =

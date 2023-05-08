@@ -1,3 +1,5 @@
+import Coordinate from "./Coordinate.js";
+import Figure from "./Figure.js";
 import Board from "./board.js";
 import Bishop from "./pieces/bishop.js";
 import King from "./pieces/king.js";
@@ -7,49 +9,125 @@ import Pawn from "./pieces/pawn.js";
 class Chess {
 	#number_regex = /^[1-8]$/gm;
 	#char_regex = /^[a-h]$/gm;
-
+	#history = [];
+	#ended = false;
 	constructor() {
 		this.setDefeault();
 	}
+
 	setDefeault() {
 		this.board = new Board();
 		this.turn = "w";
-		this.ended = false;
-		this.history = [];
+		this.#ended = false;
+		this.#history = [];
 	}
-	playMove(move) {
-		if (this.#parseAndTryMove(move) == "Error") {
-			console.log("Error@", move);
-			return "Error";
+
+	parseHistory(reduced) {
+		let strn = "";
+		let index = 0;
+		if (reduced) {
+			index = this.#history.length > 6 ? this.#history.length - 5 : 0;
 		}
-		this.history.push(move);
+		for (; index < this.#history.length; index++) {
+			const turn = this.#history[index];
+			if (index % 2 == 0) {
+				strn += `${index / 2 + 1}. ${turn} `;
+			} else {
+				strn += `${turn} `;
+			}
+		}
+		return strn;
+	}
+
+	getAvaliableMoves(figure) {
+		if (!(figure instanceof Figure)) return null;
+		const king =
+			this.turn == "w" ? this.board.white_king : this.board.black_king;
+		const allMoves = figure.getAdjacentMoves(this.board);
+		let checking_figures = this.board.isKingInCheck(king.x, king.y, king.side);
+		if (checking_figures.length == 0)
+			checking_figures = this.board.checkForPin(figure, king);
+		const dangersqr = this.board.generateDangerSquares(
+			checking_figures,
+			king.x,
+			king.y
+		);
+		const avaliableMoves = allMoves.filter((move) => {
+			for (let index = 0; index < dangersqr.length; index++) {
+				const sqr = dangersqr[index];
+				if (Coordinate.compare(move, sqr)) {
+					return move;
+				}
+			}
+		});
+
+		return avaliableMoves;
+	}
+
+	playMove(move) {
+		if (this.#ended) return [false, "Game has already ended."];
+		const played = this.#parseAndTryMove(move);
+		if (played[0] == false) {
+			return played;
+		}
+		this.#history.push(move);
 		this.#switchTurn();
 		this.board.showBoard();
 		if (this.isCheckmate()) {
 			console.log("Game ended!\nWinner:", this.turn == "w" ? "Black" : "White");
-			this.ended = true;
+			this.#ended = true;
 			return this.turn == "w" ? 2 : 1;
 		}
 		if (this.isDraw()) {
 			console.log("Game ended!\nDraw!");
-			this.ended = true;
+			this.#ended = true;
 			return 3;
 		}
+		//Countinue playing.
 		return 0;
+	}
+
+	isDraw() {
+		return (
+			//50-moves rule.( 50 moves per player => 100 in total. )
+			this.board.fifty_rule >= 100 ||
+			this.#drawByInsufficientMaterial() ||
+			this.#drawByStaleMate() ||
+			this.#drawByThreeFoldRep()
+		);
+	}
+
+	isCheckmate() {
+		//Get king.
+		const king =
+			this.turn == "w" ? this.board.white_king : this.board.black_king;
+		const checking_figures = this.board.isKingInCheck(
+			king.x,
+			king.y,
+			king.side
+		);
+		if (checking_figures.length == 0) return false;
+		//Check first if a figure other than king can block the check.
+		let can_be_blocked = this.board.canFigureBlock(king, checking_figures);
+		if (can_be_blocked) return false;
+		//Check if king can move to safety.
+		return !this.board.canKingMove(king);
 	}
 
 	#parseAndTryMove(move) {
 		if (move === "O-O") {
 			const king =
 				this.turn == "w" ? this.board.white_king : this.board.black_king;
-			if (!this.board.castleKingShort(king)) return "Error";
-			return true;
+			if (!this.board.castleKingShort(king))
+				return [false, "You can not castle short"];
+			return [true];
 		}
 		if (move === "O-O-O") {
 			const king =
 				this.turn == "w" ? this.board.white_king : this.board.black_king;
-			if (!this.board.castleKingLong(king)) return "Error";
-			return true;
+			if (!this.board.castleKingLong(king))
+				return [false, "You can not castle long"];
+			return [true];
 		}
 		if (move.includes("x")) {
 			move = move.replace("x", "");
@@ -62,8 +140,7 @@ class Chess {
 		}
 		//Syntax checks.
 		if (move.length > 4 || move.length < 2) {
-			console.log("Error: move wrong format.");
-			return "Error";
+			return [false, "move is not in the rigth format"];
 		}
 
 		//Check for figure notation first.
@@ -111,10 +188,8 @@ class Chess {
 			});
 
 		if (found_figures == []) {
-			console.log("Error: no found figures.");
-			return "Error";
+			return [false, "The piece you try to move is not on the board"];
 		}
-
 		//Case sensitivity issue.
 		move = move.toLowerCase();
 		//Semantic checks for coordinates.
@@ -123,38 +198,16 @@ class Chess {
 
 		const x = Number.parseInt(move.charAt(2 + offset)) - 1;
 
-		if (x > Board.MAX_SIZE || x < 0) return "Error";
+		if (x > Board.MAX_SIZE || x < 0) return [false, "Out of bounds"];
 
-		if (y > Board.MAX_SIZE || y < 0) return "Error";
-
+		if (y > Board.MAX_SIZE || y < 0) return [false, "Out of bounds"];
+		let last_error = "";
 		for (let i = 0; i < found_figures.length; i++) {
-			if (this.board.moveFigure(found_figures[i], x, y)) return true;
+			const result = this.board.moveFigure(found_figures[i], x, y);
+			if (result[0] == true) return [true];
+			last_error = result[1];
 		}
-		console.log("Error: Move not played");
-		return "Error";
-	}
-
-	isDraw() {
-		return (
-			//50-moves rule.( 50 moves per player => 100 in total. )
-			this.board.fifty_rule >= 100 ||
-			this.#drawByInsufficientMaterial() ||
-			this.#drawByStaleMate() ||
-			this.#drawByThreeFoldRep()
-		);
-	}
-
-	isCheckmate() {
-		//Get king.
-		const king =
-			this.turn == "w" ? this.board.white_king : this.board.black_king;
-		if (this.board.isKingInCheck(king.x, king.y, king.side).length == 0)
-			return false;
-		//Check first if a figure other than king cna block the check.
-		let can_be_blocked = this.board.canFigureBlock(king);
-		if (can_be_blocked) return false;
-		//Check if king can move to safety.
-		return !this.board.canKingMove(king);
+		return [false, last_error || "Move can not be played"];
 	}
 
 	#drawByStaleMate() {
@@ -222,8 +275,11 @@ class Chess {
 		return false;
 	}
 
+	//Not quite accurate.
 	#drawByThreeFoldRep() {
-		const last_ten = this.history.slice(Math.max(this.history.length - 10, 1));
+		const last_ten = this.#history.slice(
+			Math.max(this.#history.length - 10, 1)
+		);
 		let counters = [0, 0, 0, 0];
 		if (last_ten.length <= 8) return false;
 		let last_moves = last_ten.slice(0, 4);
@@ -267,7 +323,7 @@ class Chess {
 			const move = moves_array[i];
 			this.playMove(move);
 		}
-		this.setDefeault();
+		//this.setDefeault();
 	}
 }
 

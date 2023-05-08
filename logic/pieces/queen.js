@@ -33,6 +33,14 @@ class Queen extends Figure {
 			return Figure.INVAL_COORD;
 		}
 	}
+	getAdjacentMoves(board) {
+		let path = [];
+		let bishop = new Bishop(this.x, this.y, this.side);
+		let rook = new Rook(this.x, this.y, this.side);
+		path.push(...bishop.getAdjacentMoves(board));
+		path.push(...rook.getAdjacentMoves(board));
+		return path;
+	}
 }
 
 export default Queen;

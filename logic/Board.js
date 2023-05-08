@@ -8,16 +8,15 @@ import Queen from "./pieces/queen.js";
 import Rook from "./pieces/rook.js";
 
 class Board {
-	
 	static MAX_SIZE = 7;
 	#enpassant = [-1, -1];
 	white_king = {};
 	black_king = {};
-	
+
 	constructor() {
 		this.whitefigures = [];
 		this.blackfigures = [];
-		this.matrix=[];
+		this.matrix = [];
 		this.fifty_rule = 0;
 		this.#initBoard();
 	}
@@ -178,6 +177,7 @@ class Board {
 	generateDangerSquares(checkingFigures, kingx, kingy) {
 		//If king already in check, what are the danger squares of that check.
 		let dangersqrs = [];
+		if (checkingFigures.length == 0) return dangersqrs;
 		dangersqrs.push(new Coordinate(kingx, kingy));
 		checkingFigures.forEach((figure) => {
 			dangersqrs.push(new Coordinate(figure.x, figure.y));
@@ -186,10 +186,8 @@ class Board {
 		return dangersqrs;
 	}
 
-	canFigureBlock(king) {
+	canFigureBlock(king, checkingfigs) {
 		let can_be_blocked = false;
-		//get checking figures
-		const checkingfigs = this.isKingInCheck(king.x, king.y, king.side);
 		//get danger sqrs
 		const dangersqr = this.generateDangerSquares(checkingfigs, king.x, king.y);
 		const allyfigures =
@@ -211,7 +209,7 @@ class Board {
 	canKingMove(king) {
 		//No blocking from other figures.
 		//Can the king move on a safe square
-		const validsqr = king.getAdjacentKingMoves(this.matrix);
+		const validsqr = king.getAdjacentMoves(this);
 		if (validsqr.length == 0) return false;
 		const safesqr = validsqr.filter((sqr) => {
 			const checkingfigs = this.isKingInCheck(sqr.x, sqr.y, king.side);
@@ -219,6 +217,16 @@ class Board {
 		});
 		if (safesqr.length > 0) return true;
 		return false;
+	}
+
+	checkForPin(figure, king) {
+		//Disappeare the piece.
+		this.matrix[figure.x][figure.y] = {};
+		//Check again.
+		const checkingfigs = this.isKingInCheck(king.x, king.y, king.side);
+		//Return the piece back.
+		this.matrix[figure.x][figure.y] = figure;
+		return checkingfigs;
 	}
 
 	/**
@@ -273,62 +281,33 @@ class Board {
 	 */
 	moveFigure(figure, _x, _y) {
 		//Valid move, but not under the rules (checks).
-		if (!this.isValidMove(figure, _x, _y)) return false;
+		if (!this.isValidMove(figure, _x, _y))
+			return [false, "Move is not possible on the board"];
 
 		//If figure king => no need for checks.
 		if (figure instanceof King) {
-			if (this.isKingInCheck(_x, _y, figure.side).length > 0) return false;
+			if (this.isKingInCheck(_x, _y, figure.side).length > 0)
+				return [false, "King will be still in check"];
 			this.#doMove(figure, _x, _y);
-			return true;
+			return [true];
 		}
 		//Is the king in check.
 		const king = figure.side == "w" ? this.white_king : this.black_king;
-		const checkingfigs = this.isKingInCheck(king.x, king.y, king.side);
-		if (checkingfigs.length > 0) {
-			const dangersqrs = this.generateDangerSquares(
-				checkingfigs,
-				king.x,
-				king.y
-			);
-			const dest = new Coordinate(_x, _y);
-			if (
-				dangersqrs.find((sqr) => Coordinate.compare(sqr, dest)) == undefined
-			) {
-				console.log("MoveFigure: ", "king in check, move is not valid.");
-				return false;
-			}
-		} else {
-			//Check if piece is pinned.
-			//! By disappearing the piece.
-			this.matrix[figure.x][figure.y] = {};
-			const checkingfigs_after_remove = this.isKingInCheck(
-				king.x,
-				king.y,
-				king.side
-			);
-			if (checkingfigs_after_remove.length > 0) {
-				//Return the piece back.
-				this.matrix[figure.x][figure.y] = figure;
-				//Only avaliable moves for that pinned piece.
-				const dangersqrs = this.generateDangerSquares(
-					checkingfigs_after_remove,
-					king.x,
-					king.y
-				);
-				const dest = new Coordinate(_x, _y);
-				if (
-					dangersqrs.find((sqr) => Coordinate.compare(sqr, dest)) == undefined
-				) {
-					console.log("MoveFigure: figure pinned, move is not valid.");
-					return false;
-				}
-			}
-			//Return the piece back.
-			this.matrix[figure.x][figure.y] = figure;
-		}
-		//Pawn promoting.
+		const result = this.#isKingInCheckAfterMove(king, _x, _y);
+		if (result[0] == false) return result;
+
+		//Is piece pinned to king.
+		//Disappeare the piece.
+		this.matrix[figure.x][figure.y] = {};
+		//Check again.
+		const new_result = this.#isKingInCheckAfterMove(king, _x, _y);
+		//Return the piece back.
+		this.matrix[figure.x][figure.y] = figure;
+		if (new_result[0] == false) return new_result;
+
+		//Pawn specific behaviour.
 		if (figure instanceof Pawn) {
-			//Pawn move reset counter too.
+			//Pawn moves reset counter .
 			this.fifty_rule = 0;
 			figure = figure.canPromote(_x, _y);
 			if (figure instanceof Queen) {
@@ -344,13 +323,25 @@ class Board {
 			//En passant check.
 			if (this.#enPassantCheck(figure, _x, _y) == true) {
 				this.#doMove(figure, _x, _y);
-				return true;
+				return [true];
 			} else {
 				this.#enpassant = [-1, -1];
 			}
 		}
 		this.#doMove(figure, _x, _y);
-		return true;
+		return [true];
+	}
+
+	#isKingInCheckAfterMove(king, _x, _y) {
+		const checkingfigs = this.isKingInCheck(king.x, king.y, king.side);
+		if (checkingfigs.length == 0) return [true];
+		const dangersqrs = this.generateDangerSquares(checkingfigs, king.x, king.y);
+		const dest = new Coordinate(_x, _y);
+		if (!dangersqrs.find((sqr) => Coordinate.compare(sqr, dest))) {
+			return [false, "King is in check, move does not remove the check."];
+		}
+		if (checkingfigs.length == 2) return [false, "Other piece should block"];
+		return [true];
 	}
 
 	#enPassantCheck(pawn, _x, _y) {
@@ -417,11 +408,9 @@ class Board {
 
 		return return_fig;
 	}
-
-	getMatrix() {
-		//! Deep copy of matrix Important.
-		const matrixCopy = JSON.parse(JSON.stringify(this.matrix));
-		return matrixCopy;
+	
+	getEnpassant() {
+		return this.#enpassant;
 	}
 }
 
