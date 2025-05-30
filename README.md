@@ -57,7 +57,7 @@ A multiplayer and single-player chess game built with Node.js, Express, and Sock
 │   ├── controllers/
 │   │   ├── multiplayerController.js # Handles socket events for multiplayer games
 │   │   ├── roomsController.js       # Handles socket events for room-based games
-│   │   └── singleplayerController.js# Handles socket events for single-player games
+│   │   └── singleplayerController.js # Handles socket events for single-player games
 │   ├── models/
 │   │   ├── Room.js            # Room class for game sessions
 │   │   └── Settings.js        # Settings class for game customization
