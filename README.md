@@ -35,7 +35,7 @@ A multiplayer and single-player chess game built with Node.js, Express, and Sock
     * Real-time feedback for game state, turns, and errors.
 
 ## Project Structure
-
+```bash
 /
 ├── frontend/
 │   ├── css/
@@ -52,7 +52,7 @@ A multiplayer and single-player chess game built with Node.js, Express, and Sock
 │   ├── Coordinate.js        # Helper for board coordinates
 │   ├── Figure.js            # Base class for chess pieces
 │   ├── game_behaviour_test.js # Tests for game scenarios
-│   └── piece_behaviour_test.js# Tests for individual piece movements
+│   └── piece_behaviour_test.js # Tests for individual piece movements
 ├── src/
 │   ├── controllers/
 │   │   ├── multiplayerController.js # Handles socket events for multiplayer games
@@ -61,13 +61,12 @@ A multiplayer and single-player chess game built with Node.js, Express, and Sock
 │   ├── models/
 │   │   ├── Room.js            # Room class for game sessions
 │   │   └── Settings.js        # Settings class for game customization
-├── .gitignore
 ├── package-lock.json
 ├── package.json             # Project dependencies and scripts
 ├── server.js                # Main Node.js server setup with Socket.IO
-├── server_old.js            # (Likely an older version of the server, can be noted or removed)
+├── server_old.js            # (An older version of the server, can be noted or removed)
 └── utils.js                 # Utility functions (e.g., makeid for room codes)
-
+```
 
 ## Technologies Used
 
