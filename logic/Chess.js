@@ -1,6 +1,7 @@
 import Coordinate from "./Coordinate.js";
 import Figure from "./Figure.js";
 import Board from "./board.js";
+import Rook from "./pieces/rook.js";
 import Bishop from "./pieces/bishop.js";
 import King from "./pieces/king.js";
 import Knight from "./pieces/knight.js";
@@ -20,8 +21,9 @@ class Chess {
 		this.turn = "w";
 		this.#ended = false;
 		this.#history = [];
+		this.positionHistory = {}; // For position counts
+        this.#recordPosition();
 	}
-
 	parseHistory(reduced) {
 		let strn = "";
 		let index = 0;
@@ -39,29 +41,129 @@ class Chess {
 		return strn;
 	}
 
+	// In logic/Chess.js
 	getAvaliableMoves(figure) {
-		if (!(figure instanceof Figure)) return null;
-		const king =
-			this.turn == "w" ? this.board.white_king : this.board.black_king;
-		const allMoves = figure.getAdjacentMoves(this.board);
-		let checking_figures = this.board.isKingInCheck(king.x, king.y, king.side);
-		if (checking_figures.length == 0)
-			checking_figures = this.board.checkForPin(figure, king);
-		const dangersqr = this.board.generateDangerSquares(
-			checking_figures,
-			king.x,
-			king.y
-		);
-		const avaliableMoves = allMoves.filter((move) => {
-			for (let index = 0; index < dangersqr.length; index++) {
-				const sqr = dangersqr[index];
-				if (Coordinate.compare(move, sqr)) {
-					return move;
-				}
-			}
-		});
+    if (!(figure instanceof Figure)) {
+        return []; // Always return an array
+    }
 
-		return avaliableMoves;
+    const king = (this.turn === figure.side) ? (figure.side === "w" ? this.board.white_king : this.board.black_king) : null;
+    if (!king) {
+        // This case should ideally not be reached if figure.side always matches this.turn
+        // or if getAvaliableMoves is only called for pieces of the current player.
+        // console.warn("getAvaliableMoves called for a figure whose side does not match current turn, or king not found.");
+        return [];
+    }
+
+    const pseudoLegalMoves = figure.getAdjacentMoves(this.board);
+    let candidateMoves = pseudoLegalMoves;
+
+    const currentKingCheckers = this.board.isKingInCheck(king.x, king.y, king.side);
+
+    if (currentKingCheckers.length > 0) {
+        const dangerResolvingSquares = this.board.generateDangerSquares(currentKingCheckers, king.x, king.y);
+        candidateMoves = pseudoLegalMoves.filter(move =>
+            dangerResolvingSquares.some(sqr => Coordinate.compare(move, sqr))
+        );
+    } else if (figure !== king) {
+        const pinners = this.board.checkForPin(figure, king);
+        if (pinners.length > 0) {
+            const pinResolvingSquares = this.board.generateDangerSquares(pinners, king.x, king.y);
+            candidateMoves = pseudoLegalMoves.filter(move =>
+                pinResolvingSquares.some(sqr => Coordinate.compare(move, sqr))
+            );
+        }
+    }
+
+    const legalMoves = [];
+    for (const move of candidateMoves) {
+        // ---- START DEFENSIVE CHECK & FIX ----
+        if (!move || typeof move.x !== 'number' || typeof move.y !== 'number' ||
+            move.x < 0 || move.x > Board.MAX_SIZE ||
+            move.y < 0 || move.y > Board.MAX_SIZE) {
+            console.error(
+                `Invalid 'move' object (${JSON.stringify(move)}) passed to simulation loop in getAvaliableMoves.`,
+                `Originating piece: ${figure.notation} at (${figure.x}, ${figure.y}). Skipping this move.`
+            );
+            continue; // Skip this invalid/out-of-bounds move object
+        }
+        // ---- END DEFENSIVE CHECK & FIX ----
+
+        const originalFigX = figure.x;
+        const originalFigY = figure.y;
+        // This was the crashing line if move.x was out of bounds for this.board.matrix:
+        const pieceAtTarget = this.board.matrix[move.x][move.y];
+
+        let capturedPieceList = null;
+        let capturedPieceIndex = -1;
+        let originalFigureLists = { // Store original lists for perfect restoration
+            white: [...this.board.whitefigures],
+            black: [...this.board.blackfigures]
+        };
+
+
+        this.board.matrix[originalFigX][originalFigY] = {};
+        this.board.matrix[move.x][move.y] = figure;
+        figure.x = move.x;
+        figure.y = move.y;
+
+        if (pieceAtTarget instanceof Figure && pieceAtTarget.side !== figure.side) {
+            capturedPieceList = (pieceAtTarget.side === 'w') ? this.board.whitefigures : this.board.blackfigures;
+            capturedPieceIndex = capturedPieceList.indexOf(pieceAtTarget);
+            if (capturedPieceIndex > -1) {
+                capturedPieceList.splice(capturedPieceIndex, 1);
+            }
+        }
+
+        const kingIsSafeAfterMove = this.board.isKingInCheck(king.x, king.y, king.side).length === 0;
+
+        figure.x = originalFigX;
+        figure.y = originalFigY;
+        this.board.matrix[originalFigX][originalFigY] = figure;
+        this.board.matrix[move.x][move.y] = pieceAtTarget;
+
+        // Restore figure lists more robustly if they were modified
+        this.board.whitefigures = originalFigureLists.white;
+        this.board.blackfigures = originalFigureLists.black;
+        // Re-find king references if the lists were fully replaced,
+        // or ensure king objects themselves were not removed if they weren't the captured piece.
+        // This part is tricky if lists are fully replaced; better to splice/add back if possible.
+        // The provided splice/add back logic:
+        if (capturedPieceList && capturedPieceIndex > -1 && pieceAtTarget) { // Ensure pieceAtTarget is defined
+             // This restoration was for the simple splice. If lists are fully restored above, this is not needed
+             // unless the lists were not fully restored.
+             // Let's assume for now the original splice/add back is preferred if lists aren't fully copied/restored.
+             // If using full list restoration:
+             // The piece was removed from the *copied* list implicitly.
+             // The original lists are now restored, so no need to add it back here if using list copy.
+             // However, the provided code has:
+             // if (capturedPieceList && capturedPieceIndex > -1) {
+             //     capturedPieceList.splice(capturedPieceIndex, 0, pieceAtTarget);
+             // }
+             // This needs to operate on the *actual current* lists, not potentially stale `capturedPieceList` if lists were swapped.
+             // Sticking to the original intent of targeted splice/add:
+             if (pieceAtTarget instanceof Figure && pieceAtTarget.side !== figure.side) { // Re-check pieceAtTarget
+                const actualCurrentList = (pieceAtTarget.side === 'w') ? this.board.whitefigures : this.board.blackfigures;
+                // Check if it's already restored by full list copy, or if it needs to be added back
+                if (actualCurrentList.indexOf(pieceAtTarget) === -1) { // if not found, it means it was indeed removed
+                     const correctIndexForRestoration = originalFigureLists[pieceAtTarget.side === 'w' ? 'white' : 'black'].indexOf(pieceAtTarget);
+                     if(correctIndexForRestoration > -1) {
+                        actualCurrentList.splice(correctIndexForRestoration, 0, pieceAtTarget);
+                     } else {
+                        // Fallback if original index not found (should not happen with list copy)
+                        // Or if not using list copy, this is the main restoration path:
+                        // capturedPieceList.splice(capturedPieceIndex, 0, pieceAtTarget);
+                     }
+                }
+             }
+        }
+
+
+        if (kingIsSafeAfterMove) {
+            legalMoves.push(new Coordinate(move.x, move.y));
+        }
+    }
+    return legalMoves;
 	}
 
 	playMove(move) {
@@ -72,6 +174,7 @@ class Chess {
 		}
 		this.#history.push(move);
 		this.#switchTurn();
+		this.#recordPosition();
 		this.board.showBoard();
 		if (this.isCheckmate()) {
 			console.log("Game ended!\nWinner:", this.turn == "w" ? "Black" : "White");
@@ -97,23 +200,77 @@ class Chess {
 		);
 	}
 
+	// Checkmate
 	isCheckmate() {
-		//Get king.
-		const king =
-			this.turn == "w" ? this.board.white_king : this.board.black_king;
-		const checking_figures = this.board.isKingInCheck(
-			king.x,
-			king.y,
-			king.side
-		);
-		if (checking_figures.length == 0) return false;
-		//Check first if a figure other than king can block the check.
-		let can_be_blocked = this.board.canFigureBlock(king, checking_figures);
-		if (can_be_blocked) return false;
-		//Check if king can move to safety.
-		return !this.board.canKingMove(king);
-	}
+    const king = this.turn === "w" ? this.board.white_king : this.board.black_king;
+    const opponentSide = this.turn === "w" ? "b" : "w";
 
+    // 1. Is the king currently in check?
+    const checkingFigures = this.board.isKingInCheck(king.x, king.y, king.side);
+    if (checkingFigures.length === 0) {
+        return false; // Not in check, so not checkmate
+    }
+
+    // 2. Can the king move to a safe square?
+    // Get all valid king moves (squares it can move to according to its pattern)
+    const kingPossibleMoves = king.getAdjacentMoves(this.board);
+    for (const move of kingPossibleMoves) {
+        // Temporarily move king to simulate
+        const originalKingX = king.x;
+        const originalKingY = king.y;
+        const pieceAtDestination = this.board.matrix[move.x][move.y];
+
+        this.board.matrix[originalKingX][originalKingY] = {}; // Clear old king position
+        this.board.matrix[move.x][move.y] = king; // Move king
+        king.x = move.x;
+        king.y = move.y;
+
+        const isSafe = this.board.isKingInCheck(move.x, move.y, king.side).length === 0;
+
+        // Undo the temporary move
+        king.x = originalKingX;
+        king.y = originalKingY;
+        this.board.matrix[originalKingX][originalKingY] = king;
+        this.board.matrix[move.x][move.y] = pieceAtDestination;
+
+        if (isSafe) {
+            return false; // King can move to a safe square
+        }
+    }
+
+    // 3. Can any other piece block the check or capture the checking piece?
+    // This is more complex if there are multiple checking pieces (double check)
+    if (checkingFigures.length === 1) { // Only one piece checking the king
+        const checker = checkingFigures[0];
+        const allPlayerPieces = this.turn === "w" ? this.board.whitefigures : this.board.blackfigures;
+
+        for (const piece of allPlayerPieces) {
+            if (piece === king) continue; // Already handled king moves
+
+            const availableMovesForPiece = this.getAvaliableMoves(piece); // This should consider pins!
+            for (const move of availableMovesForPiece) {
+                // Can this move capture the checker?
+                if (move.x === checker.x && move.y === checker.y) {
+                    return false; // Checker can be captured
+                }
+                // Can this move block the check? (Only for sliding pieces: R, B, Q)
+                if (['r', 'b', 'q'].includes(checker.notationsmall.toLowerCase())) {
+                    const pathBetween = checker.getMoveVector(king.x, king.y);
+                    if (pathBetween) { // Ensure pathBetween is not null
+                       for (const pathSquare of pathBetween) {
+                           if (move.x === pathSquare.x && move.y === pathSquare.y) {
+                               return false; // Check can be blocked
+                           }
+                       }
+                    }
+                }
+            }
+        }
+    }
+    // If double check, only king move can save, which was handled in step 2.
+    // If we reach here, it's checkmate.
+    return true;
+	}
 	#parseAndTryMove(move) {
 		if (move === "O-O") {
 			const king =
@@ -209,96 +366,93 @@ class Chess {
 		}
 		return [false, last_error || "Move can not be played"];
 	}
+	#generatePositionKey() {
+        const boardFenPart = this.board.generatePositionKeyFen(); // Get FEN for board, castling, en passant
+        return boardFenPart + " " + this.turn; // Add active color
+    }
+
+    #recordPosition() {
+        const key = this.#generatePositionKey();
+        this.positionHistory[key] = (this.positionHistory[key] || 0) + 1;
+        //console.log(`Recorded: ${key}, Count: ${this.positionHistory[key]}`); // Debug
+    }
+
+    #drawByThreeFoldRep() {
+        const key = this.#generatePositionKey();
+        //console.log(`Checking 3-fold for: ${key}, Count: ${this.positionHistory[key] || 0}`); // Debug
+        if ((this.positionHistory[key] || 0) >= 3) {
+            return true;
+        }
+        return false;
+    }
+
+	#hasLegalMoves() { // Helper function to check for any legal move
+    const pieces = (this.turn === "w") ? this.board.whitefigures : this.board.blackfigures;
+
+    for (const piece of pieces) {
+		
+        const availableMoves = this.getAvaliableMoves(piece); // Crucial: This must return ONLY legal moves
+                                                            // (i.e., moves that don't leave own king in check)
+        if (availableMoves && availableMoves.length > 0) {
+            return true; // Found at least one legal move
+        }
+    }
+    return false; // No legal moves found for any piece
+	}
 
 	#drawByStaleMate() {
-		//no legal king & pawns moves.
-		let is_stalemate = true;
-		const figure_arr =
-			this.turn == "w" ? this.board.whitefigures : this.board.blackfigures;
-		const result = figure_arr.filter(
-			(figure) => figure instanceof King || figure instanceof Pawn
-		);
-		if (result.length == figure_arr.length) {
-			result.forEach((figure) => {
-				if (!(figure instanceof King)) {
-					if (this.board.isValidMove(figure, figure.x + 1, figure.y)) {
-						is_stalemate = false;
-					}
-				} else {
-					if (this.board.canKingMove(figure)) {
-						is_stalemate = false;
-					}
-				}
-			});
-		} else {
-			is_stalemate = false;
-		}
-		return is_stalemate;
+    const king = (this.turn === "w") ? this.board.white_king : this.board.black_king;
+
+    // 1. King must NOT be in check
+    if (this.board.isKingInCheck(king.x, king.y, king.side).length > 0) {
+        return false;
+    }
+
+    // 2. There must be NO legal moves for the current player
+    if (!this.#hasLegalMoves()) {
+        return true; // Stalemate
+    }
+
+    return false;
 	}
 
 	#drawByInsufficientMaterial() {
-		//Insufficient material
-		if (this.board.whitefigures.length == 1) {
-			if (this.board.blackfigures.length == 1) return true;
-		}
+    const whitePieces = this.board.whitefigures;
+    const blackPieces = this.board.blackfigures;
+    const whiteCount = whitePieces.length;
+    const blackCount = blackPieces.length;
 
-		if (this.board.whitefigures.length == 1) {
-			if (this.board.blackfigures.length == 2) {
-				if (
-					this.board.blackfigures.find(
-						(figure) => figure instanceof Knight || figure instanceof Bishop
-					) != undefined
-				)
-					return true;
-			}
-		}
-		if (this.board.whitefigures.length == 2) {
-			if (this.board.blackfigures.length == 1) {
-				if (
-					this.board.whitefigures.find(
-						(figure) => figure instanceof Knight || figure instanceof Bishop
-					) != undefined
-				)
-					return true;
-			}
-			if (this.board.blackfigures.length == 2) {
-				const black_bishop = this.board.blackfigures.find(
-					(figure) => figure instanceof Bishop
-				);
-				const white_bishop = this.board.whitefigures.find(
-					(figure) => figure instanceof Bishop
-				);
-				if (black_bishop.isWhiteColor() == white_bishop.isWhiteColor())
-					return true;
-			}
-		}
-		return false;
-	}
+    // Helper function to count specific piece types
+    const countPiece = (pieces, PieceType) => pieces.filter(p => p instanceof PieceType).length;
+    const getPiece = (pieces, PieceType) => pieces.find(p => p instanceof PieceType);
+    // K vs K
+    if (whiteCount === 1 && blackCount === 1) return true;
 
-	//Not quite accurate.
-	#drawByThreeFoldRep() {
-		const last_ten = this.#history.slice(
-			Math.max(this.#history.length - 10, 1)
-		);
-		let counters = [0, 0, 0, 0];
-		if (last_ten.length <= 8) return false;
-		let last_moves = last_ten.slice(0, 4);
-		for (let i = 4; i < 10; i++) {
-			const move = last_ten[i];
-			if (move === last_moves[i % 4]) {
-				counters[i % 4]++;
-			}
-		}
-		if (
-			counters[0] == 2 &&
-			counters[1] >= 1 &&
-			counters[2] == 1 &&
-			counters[3] == 1
-		)
-			return true;
+    // K vs K + Minor Piece (Bishop or Knight)
+    if (whiteCount === 1 && blackCount === 2) {
+        if (countPiece(blackPieces, Knight) === 1 || countPiece(blackPieces, Bishop) === 1) return true;
+    }
+    if (blackCount === 1 && whiteCount === 2) {
+        if (countPiece(whitePieces, Knight) === 1 || countPiece(whitePieces, Bishop) === 1) return true;
+    }
+    // K + B vs K + B (Bishops on same color squares)
+    if (whiteCount === 2 && blackCount === 2) {
+        const whiteBishop = getPiece(whitePieces, Bishop);
+        const blackBishop = getPiece(blackPieces, Bishop);
+        if (whiteBishop && blackBishop) { // Both sides have a bishop
+            if (countPiece(whitePieces, Knight) === 0 && countPiece(blackPieces, Knight) === 0 &&
+                countPiece(whitePieces, Rook) === 0 && countPiece(blackPieces, Rook) === 0 &&
+                countPiece(whitePieces, Queen) === 0 && countPiece(blackPieces, Queen) === 0 &&
+                countPiece(whitePieces, Pawn) === 0 && countPiece(blackPieces, Pawn) === 0) {
+                if (whiteBishop.isWhiteColor() === blackBishop.isWhiteColor()) return true;
+            }
+        }
+    }
+    // Note: There are other rare cases like K+N+N vs K, which are generally not draws
+    // unless the side with knights cannot force checkmate. This simplified version covers the most common FIDE rules for automatic draws.
+    return false;
+	}	
 
-		return false;
-	}
 
 	//Trivial.
 	#switchTurn() {

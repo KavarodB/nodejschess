@@ -6,7 +6,7 @@ import RoomsSocketController from "./src/controllers/roomsController.js";
 const corsOptions = {
 	origin: "http://127.0.0.1:5500",
 	methods: ["GET", "POST"],
-	credentials: true,
+	credentials: false
 };
 
 // Create a socket.io instance and listen to the server

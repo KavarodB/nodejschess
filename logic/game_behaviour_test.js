@@ -13,9 +13,10 @@ function playStaleMate() {
 	chess.playGame(
 		`1. e3 e6 2. Ke2 Ke7 3. Ke1 Ke8 4. Ke2 Ke7 5. Ke1 Ke8 6. Ke2 Ke7 `
 	);
-	chess.playGame(
-		"1. d4 d5 2. Qd3 Qd6 3. Qf3 Qb6 4. Qd3 Qd6 5. Qf3 Qb6 6. Qd3 Qd6 "
-	);
+	console.log("HEHEH");
+	// chess.playGame(
+	// 	"1. d4 d5 2. Qd3 Qd6 3. Qf3 Qb6 4. Qd3 Qd6 5. Qf3 Qb6 6. Qd3 Qd6 "
+	// );
 }
 
 function playSomeGames() {
@@ -57,33 +58,8 @@ function playTwoMoves() {
 	chess.playGame(`1. e4 Nf6 2. Ba6 Nxe4 3. Nf3 Ng3 4. O-O Nf5 `);
 }
 
-function wtf() {
-	("1. e4 e5 2. Qg4 d5 3. Qh5 dxe4 4. Qxe5+ Ne7 5. Bb5+ Nc6 6. Bxc6+");
-	chess.playGame(`1. e4 e5 2. Qg4 d5 3. Qh5 dxe4 4. Qxe5+ Ne7 5. Bb5+ Nc6 `);
-	chess.playMove("Bxc6+");
-	//Removing one check opens another.
-	//console.log(chess.playMove("Nc6"));
-	//Valid move.
-	chess.playMove("Bd7");
-	//Countinue the game.
-	chess.playMove("Bb7");
-	chess.playMove("Bb5");
-	//Check
-	chess.playMove("Qxb5+");
-	chess.playMove("Nc6");
-	//Check.
-	chess.playMove("Bxc6+");
-	//defend?
-	chess.playMove("Ke7");
-	chess.playMove("Bxa8");
-	chess.playMove("Qxa8");
-	//Check.
-	chess.playMove("Qe5+");
-	chess.playMove("Kd7");
-}
 
 //playStaleMate();
 //playSomeGames();
-playPawnGame();
+//playPawnGame();
 //playTwoMoves();
-//wtf();

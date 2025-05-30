@@ -399,6 +399,76 @@ class Board {
 	#getFigure(x, y) {
 		return this.matrix[x][y];
 	}
+	
+	generatePositionKeyFen() {
+        let fen = "";
+
+        // 1. Piece placement
+        for (let r = Board.MAX_SIZE; r >= 0; r--) { // Iterate ranks from 8 (index 7) down to 1 (index 0)
+            let emptyCount = 0;
+            for (let c = 0; c <= Board.MAX_SIZE; c++) { // Iterate files from 'a' (index 0) to 'h' (index 7)
+                const figure = this.matrix[r][c];
+                if (figure instanceof Figure) {
+                    if (emptyCount > 0) {
+                        fen += emptyCount;
+                        emptyCount = 0;
+                    }
+                    fen += figure.notation; // Assumes figure.notation is 'P', 'p', 'N', 'n', etc.
+                } else {
+                    emptyCount++;
+                }
+            }
+            if (emptyCount > 0) {
+                fen += emptyCount;
+            }
+            if (r > 0) {
+                fen += "/";
+            }
+        }
+
+        // 2. Castling availability
+        let castlingRights = "";
+        // White King side (K)
+        const wk = this.white_king;
+        if (wk instanceof King && !wk.hasMoved) {
+            const kRook = this.matrix[0][Board.MAX_SIZE]; // H1
+            if (kRook instanceof Rook && !kRook.hasMoved) {
+                castlingRights += "K";
+            }
+            // White Queen side (Q)
+            const qRook = this.matrix[0][0]; // A1
+            if (qRook instanceof Rook && !qRook.hasMoved) {
+                castlingRights += "Q";
+            }
+        }
+
+        // Black King side (k)
+        const bk = this.black_king;
+        if (bk instanceof King && !bk.hasMoved) {
+            const kRook = this.matrix[Board.MAX_SIZE][Board.MAX_SIZE]; // H8
+            if (kRook instanceof Rook && !kRook.hasMoved) {
+                castlingRights += "k";
+            }
+            // Black Queen side (q)
+            const qRook = this.matrix[Board.MAX_SIZE][0]; // A8
+            if (qRook instanceof Rook && !qRook.hasMoved) {
+                castlingRights += "q";
+            }
+        }
+        fen += " " + (castlingRights || "-");
+
+        // 3. En passant target square
+        const [epRow, epCol] = this.#enpassant; // Assumes this.#enpassant is [row, col] of target square or [-1,-1]
+        if (epRow !== -1) {
+            const colChar = String.fromCharCode('a'.charCodeAt(0) + epCol);
+            const rowChar = (epRow + 1).toString(); // Convert 0-indexed row to 1-indexed FEN rank
+            fen += " " + colChar + rowChar;
+        } else {
+            fen += " -";
+        }
+
+        return fen;
+    }
 
 	parseFigure(notation, turn) {
 		let figures = turn == "w" ? this.whitefigures : this.blackfigures;
