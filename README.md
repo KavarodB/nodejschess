@@ -2,7 +2,8 @@
 
 A multiplayer and single-player chess game built with Node.js, Express, and Socket.IO for real-time gameplay, featuring a JavaScript-based chess engine. Idea is to help chess players learn coordinates on the board, only way to play here is by using the standard chess notation in the text field below the board.
 
-![Multiplayer game in action](https://media.discordapp.net/attachments/1105584865048543284/1443243326227615775/MP-example.png?ex=69285c97&is=69270b17&hm=d9aa90fe0b5ec88909fd1b3f47391fc86ce154cbf2cf0ab073fc7471784136d5&=&format=webp&quality=lossless&width=723&height=810)
+![Multiplayer game in action](https://media.discordapp.net/attachments/1105584865048543284/1443243326227615775/MP-example.png?ex=69285c97&is=69270b17&hm=d9aa90fe0b5ec88909fd1b3f47391fc86ce154cbf2cf0ab073fc7471784136d5&=&format=webp&quality=lossless&width=300&height=350)
+
 
 ## Table of Contents
 
@@ -17,12 +18,13 @@ A multiplayer and single-player chess game built with Node.js, Express, and Sock
 -   [License](#license)
 
 ## Features
-
 * **Multiplayer Mode**:
     * Play against another player in real-time.
     * Room-based matchmaking: Create a new game room and share the code, or join an existing game.
     * Automatic matchmaking: Find an opponent looking for a game with similar settings.
+![Start Screen](https://media.discordapp.net/attachments/1105584865048543284/1443245394887970928/Start_Screen.png?ex=69285e84&is=69270d04&hm=f307562d3b968de7d1016f11e6430e15d21178758b4195cba8ff82dbf3aa9eee&=&format=webp&quality=lossless&width=350&height=300)
 * **Single-Player Mode** (Pass and Play): Play against yourself or another person on the same screen/browser.
+![Pass and Play](https://cdn.discordapp.com/attachments/1105584865048543284/1443246999049867414/PassAndPlay.png?ex=69286002&is=69270e82&hm=6a04c427d22983b0945db57432a091021b44deb1147fb892d4c045e778babe4e&=&format=webp&quality=lossless&width=300&height=370)
 * **Chess Engine**:
     * Supports all standard chess moves including pawn promotion, castling (King-side and Queen-side), and en passant.
     * Check, checkmate, and stalemate detection.

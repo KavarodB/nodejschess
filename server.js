@@ -1,5 +1,5 @@
 import { Server } from "socket.io";
-import SingleSocketController from "./src/controllers/multiplayerController.js";
+import SingleSocketController from "./src/controllers/singleplayerController.js";
 import MultiSocketController from "./src/controllers/multiplayerController.js";
 import RoomsSocketController from "./src/controllers/roomsController.js";
 
@@ -22,7 +22,7 @@ io.on("connection", (client) => {
 	client.leave(client.id);
 	// Create a new instance of SocketController
 	//const singleController = new SingleSocketController(io, client, serverState);
-	const multiController = new MultiSocketController(io, client, serverState);
+	const multiController = new SingleSocketController(io, client, serverState);
 	const roomsController = new RoomsSocketController(io, client, serverState);
 });
 
