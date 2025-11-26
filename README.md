@@ -2,7 +2,7 @@
 
 A multiplayer and single-player chess game built with Node.js, Express, and Socket.IO for real-time gameplay, featuring a JavaScript-based chess engine. Idea is to help chess players learn coordinates on the board, only way to play here is by using the standard chess notation in the text field below the board.
 
-![Multiplayer game in action](images/MP-example.png)
+![Multiplayer game in action](https://media.discordapp.net/attachments/1105584865048543284/1443243326227615775/MP-example.png?ex=69285c97&is=69270b17&hm=d9aa90fe0b5ec88909fd1b3f47391fc86ce154cbf2cf0ab073fc7471784136d5&=&format=webp&quality=lossless&width=723&height=810)
 
 ## Table of Contents
 
