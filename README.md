@@ -1,6 +1,8 @@
 # NodeJS Chess
 
-A multiplayer and single-player chess game built with Node.js, Express, and Socket.IO for real-time gameplay, featuring a JavaScript-based chess engine.
+A multiplayer and single-player chess game built with Node.js, Express, and Socket.IO for real-time gameplay, featuring a JavaScript-based chess engine. Idea is to help chess players learn coordinates on the board, only way to play here is by using the standard chess notation in the text field below the board.
+
+![Multiplayer game in action](images/MP-example.png)
 
 ## Table of Contents
 
@@ -64,7 +66,6 @@ A multiplayer and single-player chess game built with Node.js, Express, and Sock
 ├── package-lock.json
 ├── package.json             # Project dependencies and scripts
 ├── server.js                # Main Node.js server setup with Socket.IO
-├── server_old.js            # (An older version of the server, can be noted or removed)
 └── utils.js                 # Utility functions (e.g., makeid for room codes)
 ```
 
@@ -79,7 +80,7 @@ A multiplayer and single-player chess game built with Node.js, Express, and Sock
 
 1.  **Clone the repository**:
     ```bash
-    git clone <your-repository-url>
+    git clone https://github.com/KavarodB/nodejschess.git
     cd nodejschess
     ```
 2.  **Install dependencies**:
@@ -87,8 +88,7 @@ A multiplayer and single-player chess game built with Node.js, Express, and Sock
     ```bash
     npm install
     ```
-    The key dependencies are `express`, `socket.io`, `socket.io-client`, and `nodemon` (for development).
-
+    The key dependencies are `express`, `socket.io` and `socket.io-client`.
 ## How to Run
 
 1.  **Start the server**:
@@ -120,8 +120,6 @@ The core chess engine resides in the `logic/` directory.
 ## TODO / Future Enhancements
 * Implement more robust draw condition checks (e.g., threefold repetition, insufficient material). The `Chess.js` file includes logic for `_drawByInsufficientMaterial`, `_drawByStaleMate`, and `_drawByThreeFoldRep`, but their completeness could be reviewed.
 * Add AI for single-player vs. computer mode.
-* Improve UI/UX (e.g., drag-and-drop pieces, visual move hints).
-* Spectator mode for games.
 * Persistent user accounts and ratings.
 * More comprehensive test coverage for the chess logic.
 
